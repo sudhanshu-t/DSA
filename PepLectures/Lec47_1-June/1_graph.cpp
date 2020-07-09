@@ -1,0 +1,1231 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <list>
+#include <climits>
+#include <queue>
+#include <stack>
+
+#define ve vector<Edge>
+#define vve vector<ve>
+
+using namespace std;
+
+class Edge{
+public:
+    int n;
+    int w;
+
+    Edge(int n, int w){
+        this->n = n;
+        this->w = w;
+    }
+};
+
+void add_edge(vector<vector<Edge>>& graph, int v1, int v2, int w){
+    graph[v1].push_back(Edge(v2, w));
+    graph[v2].push_back(Edge(v1, w));
+}
+
+void display(vector<vector<Edge>>& graph){
+    for(int v = 0; v < graph.size(); v++){
+        cout << v << " -> ";
+
+        for(int e = 0; e < graph[v].size(); e++){
+            Edge edge = graph[v][e];
+            cout << "[" << edge.n << "-" << edge.w << "] ";
+        }
+
+        cout << endl;
+    }
+}
+
+void remove_edge(vve& g, int v1, int v2){
+    for(int i = 0; i < g[v1].size(); i++){
+        if(g[v1][i].n == v2){
+            g[v1][i].n = -1;
+            g[v1][i].w = -1;
+        }
+    }
+
+    for(int i = 0; i < g[v2].size(); i++){
+        if(g[v2][i].n == v1){
+            g[v2][i].n = -1;
+            g[v2][i].w = -1;
+        }
+    }
+}
+
+bool has_path(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited){
+    if(v1 == v2){
+        return true;
+    }
+    
+    visited[v1] = true;
+    
+    for(int e = 0; e < graph[v1].size(); e++){
+        Edge edge = graph[v1][e];
+        if(visited[edge.n] == false && has_path(graph, edge.n, v2, visited)){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int cpd = INT_MAX;
+int fpd = INT_MIN;
+void all_paths(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited, string psf, int weight, int factor){
+    if(v1 == v2){
+        // cout << psf << v2 << endl;
+        if(weight > factor && weight < cpd){
+            cpd = weight;
+        }
+        if(weight < factor && weight > fpd){
+            fpd = weight;
+        }
+        return;
+    }
+
+    visited[v1] = true;
+    
+    for(int i = 0; i < graph[v1].size(); i++){
+        Edge edge = graph[v1][i];
+        if(visited[edge.n] == false){
+            all_paths(graph, edge.n, v2, visited, psf + to_string(v1) + " - ", weight + edge.w, factor);
+        }
+    }
+
+    visited[v1] = false;
+}
+
+void all_paths_incl(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited, string psf){
+    if(v1 == v2){
+        cout << psf << endl;
+        return;
+    }
+
+    for(int i = 0; i < graph[v1].size(); i++){
+        Edge edge = graph[v1][i];
+        if(visited[edge.n] == false){
+            visited[v1] = true;
+            all_paths_incl(graph, edge.n, v2, visited, psf + " - " + to_string(edge.n));
+            visited[v1] = false;
+        }
+    }
+}
+
+int min_val = INT_MAX;
+void smallest_path(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited, int weight, string psf){
+    if(v1 == v2){
+        cout << psf << " -> "<< weight << endl;
+        if(weight < min_val){
+            min_val = weight;
+        }
+        return;
+    }
+    
+    for(int i = 0; i < graph[v1].size(); i++){
+        Edge e = graph[v1][i];
+        if(visited[e.n] == false){
+            visited[e.n] = true;
+            smallest_path(graph, e.n, v2, visited, weight + e.w, psf + " - " + to_string(e.n));
+            visited[e.n] = false;
+        }
+    }
+}
+
+int max_val = INT_MIN;
+void largest_path(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited, int weight){
+    if(v1 == v2){
+        if(weight > max_val){
+            // cout << weight << endl;
+            max_val = weight;
+        }
+        return;
+    }
+    
+    for(int i = 0; i < graph[v1].size(); i++){
+        Edge e = graph[v1][i];
+        if(visited[e.n] == false){
+            visited[e.n] = true;
+            largest_path(graph, e.n, v2, visited, weight + e.w);
+            visited[e.n] = false;
+        }
+    }
+}
+
+int floor_val = INT_MIN;
+void floor(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited, int factor, int w){
+    if(v1 == v2){
+        if(w < factor && w > floor_val){
+            floor_val = w;
+        }
+
+        return;
+    }
+
+    visited[v1] = true;
+    for(int i = 0; i < graph[v1].size(); i++){
+        Edge e = graph[v1][i];
+
+        if(visited[e.n] == false){
+            floor(graph, e.n, v2, visited, factor, w + e.w);
+        }
+    }
+
+    visited[v1] = false;
+}
+
+int k_largest_path(vector<vector<Edge>>& graph, int v1, int v2, vector<bool>& visited, int k){
+    int factor = INT_MAX;
+
+    for(int i = 0; i < k; i++){
+        floor_val = INT_MIN;
+        floor(graph, v1, v2, visited, factor, 0);
+        // cout << floor_val << endl;
+
+        factor = floor_val;
+    }
+
+    return floor_val;
+}
+
+// ============ TRAVERSALS ============= //
+
+class THelper{
+    public:
+    int v;
+    string psf;
+    int dsf;
+
+    THelper(int v, string psf, int dsf){
+        this->v = v;
+        this->psf = psf;
+        this->dsf = dsf;
+    }
+};
+
+bool bfs(vve& g, int src, int dest){
+    vector<bool> visited (g.size(), false);
+    list<THelper> queue;
+
+    queue.push_back(THelper (src, to_string(src), 0));
+
+    while(queue.size() > 0){
+        THelper front = queue.front();
+        queue.pop_front();
+
+        cout << src << " to " << front.v << " via " << front.psf << " @ " << front.dsf << endl;
+
+        if(visited[front.v] == true){
+            continue;
+        } else {
+            visited[front.v] = true;
+            // cout << front.v << " ";
+        }
+
+        if(front.v == dest){
+            return true;
+        }
+
+        for(int i = 0; i < g[front.v].size(); i++){
+            Edge e = g[front.v][i];
+
+            if(visited[e.n] == false){
+                queue.push_back(THelper (e.n, front.psf + to_string(e.n), front.dsf + e.w));
+            } 
+        }
+    }
+
+    return false;
+}
+
+
+int count = 2;
+void fire_count(vector<vector<int>>& d, int i, int j, int t){
+    if(t == 0){
+        d[i][j] = 2;
+        return;
+    }
+    
+    d[i][j] = 2;
+
+    if(j+1 < d[0].size() && d[i][j+1] == 0){
+        count++;
+        fire_count(d, i, j+1, t-1);
+    }
+
+    if(j-1 >= 0 && d[i][j-1] == 0){
+        count++;
+        fire_count(d, i, j-1, t-1);
+    }
+
+    if(i+1 < d.size() && d[i+1][j] == 0){
+        count++;
+        fire_count(d, i+1, j, t-1);
+    }
+
+    if(i-1 >= 0 && d[i-1][j] == 0){
+        count++;
+        fire_count(d, i-1, j, t-1);
+    }
+}
+
+class FHelper{
+public:
+    int i;
+    int j;
+    int t;
+
+    FHelper(int i, int j, int t)
+    {
+        this->i = i;
+        this->j = j;
+        this->t = t;
+    }
+};
+
+bool is_valid(vector<vector<int>>& matrix, int i, int j){
+    if(i < 0 || i >= matrix.size() || j < 0 || j >= matrix[0].size()){
+        return false;
+    } else if(matrix[i][j] == -1){
+        return false;
+    } else if(matrix[i][j] >= 0){
+        return false;
+    }
+
+    return true;
+}
+
+// -2 is normal, -1 is water, 0 is fire
+void fire_storm(vector<vector<int>>& matrix){
+    list<FHelper> queue;
+
+    for(int i = 0; i < matrix.size(); i++){
+        for(int j = 0; j < matrix[i].size(); j++){
+            if(matrix[i][j] == 0){
+                queue.push_back(FHelper (i, j, 0));
+            }
+        }
+    }
+
+    while(queue.size() > 0 && queue.front().t <= 3){
+        FHelper front = queue.front();
+        queue.pop_front();
+
+        if(matrix[front.i][front.j] > 0){
+            // Already burnt
+            continue;
+        } else {
+            matrix[front.i][front.j] = front.t;
+        }
+
+        cout << front.i << " - " << front.j << " burnt at " << front.t << endl;
+        if(is_valid(matrix, front.i - 1, front.j))
+            queue.push_back(FHelper (front.i - 1, front.j, front.t + 1));
+
+        if(is_valid(matrix, front.i + 1, front.j))
+            queue.push_back(FHelper (front.i + 1, front.j, front.t + 1));
+
+        if(is_valid(matrix, front.i, front.j + 1))
+            queue.push_back(FHelper (front.i, front.j + 1, front.t + 1));
+            
+        if(is_valid(matrix, front.i, front.j - 1))
+            queue.push_back(FHelper (front.i, front.j - 1, front.t + 1));
+    }
+}
+
+vector<string>* connected_components(vve& g){
+    vector<bool> visited (g.size(), false);
+    vector<string>* v = new vector<string>();
+    
+    for(int i = 0; i < g.size(); i++){
+        if(visited[i] == false){
+            string ans;
+            list<int> queue;
+
+            queue.push_back(i);
+
+            while(queue.size() > 0){
+                int front = queue.front();
+                queue.pop_front();
+
+                if(visited[front] == true){
+                    continue;
+                } else {
+                    visited[front] = true;
+                }
+
+                ans += to_string(front);
+
+                for(int j = 0; j < g[front].size(); j++){
+                    Edge e = g[front][j];
+                    
+                    if(visited[e.n] == false){
+                        queue.push_back(e.n);
+                    }
+                }
+            }
+
+            cout << ans << endl;
+
+            (*v).push_back(ans);
+        }
+    }
+
+    return v;
+}
+
+class Cell{
+public:
+    int i;
+    int j;
+
+    Cell(int i, int j){
+        this->i = i;
+        this->j = j;
+    }
+};
+
+bool is_valid_island(vector<vector<int>>& g, int i, int j){
+    if(i < 0 || i >= g.size() || j < 0 || j >= g[0].size()){
+        return false;
+    } else if(g[i][j] == -1 || g[i][j] == 1){
+        return false;
+    }
+
+    return true;
+}
+
+void get_component(vector<vector<int>>& g, int i, int j){
+    Cell c(i, j);
+
+    list<Cell> q;
+    q.push_back(c);
+
+    while(q.size() > 0){
+        Cell front = q.front();
+        q.pop_front();
+
+        if(g[front.i][front.j] == 0){
+            g[front.i][front.j] = 1;
+        } else {
+            continue;
+        }
+
+        if(is_valid_island(g, front.i + 1, front.j)){
+            q.push_back(Cell (front.i + 1, front.j));
+        }
+        if(is_valid_island(g, front.i - 1, front.j)){
+            q.push_back(Cell (front.i - 1, front.j));
+        }
+        if(is_valid_island(g, front.i, front.j + 1)){
+            q.push_back(Cell (front.i, front.j + 1));
+        }
+        if(is_valid_island(g, front.i, front.j - 1)){
+            q.push_back(Cell (front.i, front.j - 1));
+        }
+    }
+}
+
+int islands(vector<vector<int>>& g){
+    int num = 0;
+
+    for(int i = 0; i < g.size(); i++){
+        for(int j = 0; j < g[i].size(); j++){
+            if(g[i][j] != -1){
+                if(g[i][j] == 0){
+                    num++;
+                    get_component(g, i, j);
+                }
+            }
+        }
+    }
+
+    return num;
+}
+
+bool is_component_cyclic(vve& g, int src, vector<bool>& visited){
+    list<int> q;
+
+    q.push_back(src);
+
+    while(q.size() > 0){
+        int front = q.front();
+        q.pop_front();
+
+        if(visited[front] == true){
+            return true;
+        } else {
+            visited[front] = true;
+        }
+
+        for(int i = 0; i < g[front].size(); i++){
+            Edge e = g[front][i];
+
+            if(visited[e.n] == false)
+                q.push_back(e.n);
+        }
+    }
+
+    return false;
+}
+
+bool is_cyclic(vve& g){
+    vector<bool> visited (g.size(), false);
+
+    for(int i = 0; i < g.size(); i++){
+        if(visited[i] == false){
+            if(is_component_cyclic(g, i, visited)){
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+int get_comp_size(vve& g, int src, vector<bool>& visited){
+    list<int> q;
+    int num = 0;
+    q.push_back(src);
+
+    while(q.size() > 0){
+        int front = q.front();
+        q.pop_front();
+
+        if(visited[front] == true){
+            continue;
+        }
+        else {
+            visited[front] = true;
+            num++;
+        }
+
+        for(int i = 0; i < g[front].size(); i++){
+            Edge e = g[front][i];
+
+            if(visited[e.n] == false){
+                q.push_back(e.n);
+            }
+        }
+    }
+
+    return num;
+}
+
+int astronaut(vector<int>& astro1, vector<int>& astro2, int n){
+    vve g (n);
+    
+    for(int i = 0; i < astro1.size(); i++){
+        int one = astro1[i];
+        int two = astro2[i];
+
+        add_edge(g, one, two, 0);
+    }
+
+    display(g);
+
+    vector<int> sizes;
+    vector<bool> visited (n, false);
+
+    for(int i = 0; i < g.size(); i++){
+        if(visited[i] == false){
+            int size = get_comp_size(g, i, visited);
+            sizes.push_back(size);
+        }
+    }
+
+    // cout << sizes.size() << endl << endl;
+
+    int sum = 0;
+    for(int i = 0; i < sizes.size() - 1; i++){
+        for(int j = i + 1; j < sizes.size(); j++){
+            sum += sizes[i] * sizes[j];
+        }
+    }
+
+    for(int i = 0; i < sizes.size(); i++){
+        cout << sizes[i] << endl;
+    }
+
+    return sum;
+}
+
+class BP{
+    public:
+    int v;
+    int level;
+
+    BP(int v, int l){
+        this->v = v;
+        this->level = l;
+    }
+};
+
+bool bipartite(vve& g, int src, vector<int>& visited){
+    list<BP> q;
+    q.push_back(BP (src,0));
+
+    while(q.size() > 0){
+        BP front = q.front();
+        q.pop_front();
+
+        cout << front.v << " - " << front.level << endl;
+
+        if(visited[front.v] == -1){
+            visited[front.v] = front.level;
+        } else {
+            if(front.level%2 != visited[front.v]%2){
+                return false;
+            }
+        }
+
+        for(int i = 0; i < g[front.v].size(); i++){
+            Edge e = g[front.v][i];
+
+            if(visited[e.n] == -1)
+                q.push_back(BP (e.n, front.level + 1));
+        }
+    }
+
+    return true;
+}
+
+bool is_bipartite(vve& g){
+    vector<int> visited (g.size(), -1);
+
+    for(int i = 0; i < g.size(); i++){
+        if(visited[i] == -1){
+            if(!bipartite(g, i, visited)){
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// int min_farthest_distance_vertex_On2(vve& g){
+//     int min_val = INT_MAX;
+//     for(int i = 0; i < g.size(); i++){
+//         vector<bool> visited (g.size(), false);        
+//     }
+// }
+
+class DHelper{
+public:
+    int v;
+    string psf;
+    int dsf;
+
+    DHelper(int v, string psf, int dsf){
+        this->v = v;
+        this->psf = psf;
+        this->dsf = dsf;
+    }
+
+    bool operator>(const DHelper& other) const {
+        return this->dsf > other.dsf;
+    }
+};
+
+void dijkstra(vve& g, int src){
+    priority_queue<DHelper, vector<DHelper>, greater<DHelper>> pq;
+
+    pq.push(DHelper (src, to_string(src), 0));
+    vector<bool> visited (g.size(), false);
+
+    while(pq.size() > 0){
+        DHelper front = pq.top(); pq.pop();
+
+        if(visited[front.v] == false){
+            visited[front.v] = true;
+        } else {
+            continue;
+        }
+
+        cout << src << " to " << front.v << " via " << front.psf << " @ " << front.dsf << endl;
+
+        for(int n = 0; n < g[front.v].size(); n++){
+            Edge e = g[front.v][n];
+
+            if(visited[e.n] == false){
+                pq.push(DHelper (e.n, front.psf + to_string(e.n), front.dsf + e.w));
+            }
+        }
+    }
+}
+
+class prim_helper{
+public:
+    int v;
+    int a;
+    int c;
+
+    prim_helper(int v, int a, int c){
+        this->v = v;
+        this->a = a;
+        this->c = c;
+    }
+
+    bool operator>(const prim_helper& o) const {
+        return this->c > o.c;
+    }
+};
+
+// void add_edge_prim(vector<vector<Edge>>* graph, int v1, int v2, int w){
+//     (*graph)[v1].push_back(Edge(v2, w));
+//     (*graph)[v2].push_back(Edge(v1, w));
+// }
+
+vve prim(vve& g){
+    vve mst (g.size());
+
+    priority_queue<prim_helper, vector<prim_helper>, greater<prim_helper>> pq;
+
+    vector<bool> visited (g.size(), false);
+    pq.push(prim_helper(0, -1, 0));
+
+    while(pq.size() > 0){
+        prim_helper front = pq.top(); pq.pop();
+
+        if(visited[front.v] == true){
+            continue;
+        } else {
+            visited[front.v] = true;
+        }
+
+        if(front.a != -1){
+            add_edge(mst, front.v, front.a, front.c);
+        }
+
+        for(int n = 0; n < g[front.v].size(); n++){
+            Edge e = g[front.v][n];
+
+            if(visited[e.n] == false){
+                pq.push(prim_helper(e.n, front.v, e.w));
+            }
+        }
+    }
+
+    return mst;
+}
+
+class KEdge{
+public:
+    int v1;
+    int v2;
+    int w;
+
+    KEdge(int v1, int v2, int w){
+        this->v1 = v1;
+        this->v2 = v2;
+        this->w = w;
+    }
+
+    bool operator>(const KEdge& o) const {
+        return this->w > o.w;
+    }
+};
+
+int find(vector<int>& pa, int v){
+    if(pa[v] == v){
+        return v;
+    }
+
+    return find(pa, pa[v]);
+}
+
+void merge(vector<int>& pa, vector<int>& ra, int v1sl, int v2sl){
+    if(ra[v1sl] > ra[v2sl]){
+        pa[v2sl] = v1sl;
+    } else if(ra[v1sl] < ra[v2sl]){
+        pa[v1sl] = v2sl;
+    } else {
+        pa[v2sl] = v1sl;
+        ra[v1sl]++;
+    }
+}
+
+vector<vector<Edge>> kruskal(vve& g){
+    vector<vector<Edge>> mst (g.size());
+
+    vector<int> pa (g.size());
+    vector<int> ra (g.size(), 1);
+
+    for(int i = 0; i < pa.size(); i++){
+        pa[i] = i;
+    }
+
+    priority_queue<KEdge, vector<KEdge>, greater<KEdge>> pq;
+
+    for(int v = 0; v < g.size(); v++){
+        for(int n = 0; n < g[v].size(); n++){
+            Edge e = g[v][n];
+            if(v < e.n){
+                pq.push(KEdge (v, e.n, e.w));
+            }
+        }
+    }
+
+    int counter = 0;
+    int costMst = 0;
+    while(pq.size() > 0 && counter < g.size() - 1){
+        KEdge ke = pq.top(); pq.pop();
+
+        int v1 = ke.v1;
+        int v2 = ke.v2;
+
+        int v1sl = find(pa, v1);
+        int v2sl = find(pa, v2);
+
+        if(v1sl != v2sl){
+            add_edge(mst, v1, v2, ke.w);
+            counter++;
+            costMst += ke.w;
+            merge(pa, ra, v1sl, v2sl);
+        }
+    }
+
+    cout << "Min Cost " << costMst << endl;
+    return mst;
+}
+
+
+bool is_valid_knights_tour(int i, int j, int size, vector<bool>& visited){
+    if(i < 0 || i >= size || j < 0 || j >= size){
+        return false;
+    } else if(visited[i* size + j] == true){
+        return false;
+    } else {
+        return true;
+    }
+}
+
+int count1 = 0;
+void knights_tour(int size, int cr, int cc, vector<bool>& visited, vector<int>& psf){
+    if(psf.size() == size*size){
+        int b = cr*size + cc;
+        count1++;
+
+        for(int i = 0; i < psf.size(); i++){
+            cout << psf[i] << " ";
+        }
+
+        cout << endl;
+    }
+
+    int bno = cr * size + cc;
+    // cout << bno << " " << cr << cc << endl;
+    visited[bno] = true;
+
+    if(is_valid_knights_tour(cr - 2, cc + 1, size, visited) == true){
+        int b = (cr - 2)*size + cc + 1;
+        // cout << b << endl;
+        psf.push_back(b);
+        knights_tour(size, cr - 2, cc + 1, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr - 1, cc + 2, size, visited) == true){
+        int b = (cr - 1)*size + cc + 2;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr - 1, cc + 2, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr + 1, cc + 2, size, visited) == true){
+        int b = (cr + 1)*size + cc + 2;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr + 1, cc + 2, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr + 2, cc + 1, size, visited) == true){
+        int b = (cr + 2)*size + cc + 1;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr + 2, cc + 1, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr + 2, cc - 1, size, visited) == true){
+        int b = (cr + 2)*size + cc - 1;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr + 2, cc - 1, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr + 1, cc - 2, size, visited) == true){
+        int b = (cr + 1)*size + cc - 2;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr + 1, cc - 2, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr - 1, cc - 2, size, visited) == true){
+        int b = (cr - 1)*size + cc - 2;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr - 1, cc - 2, visited, psf);
+        psf.pop_back();
+    }
+    if(is_valid_knights_tour(cr - 2, cc - 1, size, visited) == true){
+        int b = (cr - 2)*size + cc - 1;
+        // cout << b << endl;
+
+        psf.push_back(b);
+        knights_tour(size, cr - 2, cc - 1, visited, psf);
+        psf.pop_back();
+    }
+    
+    visited[bno] = false;
+}
+
+void floyd_warshal(vve& g){
+    vector<vector<int>> res (g.size(), vector<int> (g.size(), INT_MAX));
+
+    // At t = 0, paths with no intermediates
+    for(int i = 0; i < g.size(); i++){
+        for(int n = 0; n < g[i].size(); n++){
+            Edge e = g[i][n];
+            res[i][e.n] = e.w;
+        }
+    }
+
+    // At t = 1, all paths including i1 will be added to comparison along with already existing sd path
+    // At t = 2, all paths including i1 & i2 will be added to comparison along with already existing sd path
+    // At this point, after t = 2, we have the following paths in comparison
+
+    // [sd, si1d, si2d, si1i2d*] (* means permutable path)
+
+    for(int i = 0; i < g.size(); i++){
+        for(int s = 0; s < g.size(); s++){
+            for(int d = 0; d < g.size(); d++){
+                if(s == i || s == d || i == d){
+                    continue;
+                }
+                else if(res[s][i] == INT_MAX || res[i][d] == INT_MAX){
+                    continue;
+                }
+                else {
+                    if(res[s][i] + res[i][d] < res[s][d]){
+                        res[s][d] = res[s][i] + res[i][d];
+                    }
+                }
+            }
+        }
+    }
+
+    for(int s = 0; s < res.size(); s++){
+        for(int d = 0; d < res.size(); d++){
+            cout << res[s][d] << "\t\t";
+        }
+
+        cout << endl;
+    }
+}
+
+void bellman_ford(vve& g, int src){
+    vector<int> res (g.size(), INT_MAX);
+    res[src] = 0;
+    vector<KEdge> all_edges;
+
+    for(int v = 0; v < g.size(); v++){
+        for(int n = 0; n < g[v].size(); n++){
+            Edge e = g[v][n];
+            KEdge ke(v, e.n, e.w);
+            all_edges.push_back(ke);
+        }
+    }
+
+    for(int v = 0; v < g.size() - 1; v++){
+        for(int i = 0; i < all_edges.size(); i++){
+            KEdge ke = all_edges[i];
+
+            if(res[ke.v1] != INT_MAX){
+                if(res[ke.v2] > res[ke.v1] + ke.w){
+                    res[ke.v2] = res[ke.v1] + ke.w;
+                }
+            }
+        }
+    }
+
+    for(int i = 0; i < all_edges.size(); i++){
+        KEdge ke = all_edges[i];
+
+        if(res[ke.v1] != INT_MAX){
+            if(res[ke.v2] > res[ke.v1] + ke.w){
+                cout << "Negative Cycle" << endl;
+                return;
+            }
+        }
+    }
+
+    for(int s = 0; s < res.size(); s++){
+        cout << res[s] << " ";
+    }
+
+    cout << endl;
+}
+
+void topo_slave(vve& g, int src, vector<bool>& visited, stack<int>& st, bool is_cycle){
+    visited[src] = true;
+
+    for(int n = 0; n < g[src].size(); n++){
+        Edge e = g[src][n];
+
+        if(visited[e.n] == false){
+            topo_slave(g, e.n, visited, st, is_cycle);
+        }
+    }
+    
+    st.push(src);
+}
+
+void topo_master(vve& g){
+    stack<int> st;
+    vector<bool> visited (g.size(), false);
+    bool is_cycle = false;
+
+    for(int i = 0; i < g.size(); i++){
+        if(visited[i] == false)
+            topo_slave(g, i, visited, st, is_cycle);
+    }
+
+    cout << st.size() << endl;
+    while(st.size() > 0){
+        cout << st.top() << " ";
+        st.pop();
+    }
+
+    cout << endl;
+}
+
+int timer = 0;
+
+void bridges_APs(vve& g, vector<int>& discovery, vector<int>& low, vector<bool>& visited, vector<bool>& aps, int src, int parent){
+    visited[src] = true;
+    discovery[src] = low[src] = ++timer;
+    int counter = 0;
+
+    for(int n = 0; n < g[src].size(); n++){
+        Edge e = g[src][n];
+
+        int nbr = e.n;
+
+        if(visited[nbr] == true && nbr == parent){
+            continue;
+        } else if(visited[nbr] == true && nbr != parent){
+            low[src] = min(discovery[nbr], low[src]);
+        } else {
+            counter++;
+            bridges_APs(g, discovery, low, visited, aps, nbr, src);
+
+            low[src] = min(low[src], low[nbr]);
+
+            if(discovery[src] == 1){
+                if(counter >= 2)
+                    aps[src] = true;
+            } else {
+                if(low[nbr] >= discovery[src]){
+                    aps[src] = true;
+                }
+            }
+
+            if(low[nbr] > discovery[src]){
+                cout << "Bridge is " << src << " " << nbr << endl;
+            }
+        }
+    }
+}
+
+int main(){
+    vector<vector<Edge>> graph (9);
+
+    add_edge(graph, 0, 1, 10);
+    add_edge(graph, 1, 2, 10);
+    add_edge(graph, 2, 3, 10);
+    // add_edge(graph, 2, 5, 10);
+    add_edge(graph, 0, 3, 40);
+    add_edge(graph, 3, 4, 2);
+    add_edge(graph, 4, 5, 3);
+    add_edge(graph, 4, 6, 8);
+    add_edge(graph, 5, 6, 3);
+    add_edge(graph, 0, 7, 10);
+    add_edge(graph, 0, 8, 10);
+    add_edge(graph, 8, 7, 10);
+
+    vector<int> discovery (graph.size(), 0);
+    vector<int> low (graph.size(), 0);
+    vector<bool> visited (graph.size(), false);
+    vector<bool> aps (graph.size(), false);
+    
+    bridges_APs(graph, discovery, low, visited, aps, 0, -1);
+
+    for(int i = 0; i < aps.size(); i++){
+        if(aps[i])
+            cout << i << " ";
+    }
+
+    cout << endl;
+
+    // display(graph);
+
+    // bfs(graph, 0, 6);
+
+    // vector<vector<int>> d = {
+    //     {0,1,1,1,1,0},
+    //     {0,1,0,0,1,0},
+    //     {0,0,0,1,0,0},
+    //     {0,1,0,1,0,1},
+    //     {0,0,1,1,0,0}
+    // };
+
+    // fire_count(d, 2, 5, 3);
+    // fire_count(d, 4, 0, 3);
+    // cout << count << endl;
+
+    // for(int i = 0; i < d.size(); i++){
+    //     for(int j = 0; j < d[0].size(); j++){
+    //         cout << d[i][j] << " ";
+    //     }
+
+    //     cout << endl;
+    // }
+
+    // cout << endl;
+
+    // vector<vector<int>> d = {
+    //     {0,1,1,1,1,0},
+    //     {0,1,0,0,1,0},
+    //     {0,0,0,1,0,0},
+    //     {0,1,0,1,0,1},
+    //     {0,0,1,1,0,0}
+    // };
+
+    // fire_count(d, 2, 5, 3);
+    // fire_count(d, 4, 0, 3);
+    // cout << count << endl;
+        
+    // vector<vector<int>> d = {
+    //     {-2,-2,0, -2,-2,-2},
+    //     {-2,-1,-1,-2,-1,-1},
+    //     {-2,-2,-1,-2,-2,-2},
+    //     {-2,-2,-2,-2,-1,-1},
+    //     {-2,-1,-1,0,-2,-2}
+    // };
+
+    // fire_storm(d);
+    // for(int i = 0; i < d.size(); i++){
+    //     for(int j = 0; j < d[0].size(); j++){
+    //         cout << d[i][j] << " ";
+    //     }
+
+    //     cout << endl;
+    // }
+
+    // add_edge(graph, 7, 8, 10);
+
+    // remove_edge(graph, 3, 4);
+
+    // display(graph);
+
+    // vector<string>* v = connected_components(graph);
+
+    // cout << v->size() << endl;
+    // for(int i = 0; i < v->size(); i++){
+    //     cout << (*v)[i] << endl;
+    // }
+
+    // vector<vector<int>> g = {
+    //     {0,0,-1,0,0},
+    //     {0,-1,-1,-1,0},
+    //     {-1,0,0,0,-1},
+    //     {0,-1,0,-1,0},
+    //     {0,-1,-1,-1,0}
+    // };
+
+    // cout << islands(g) << endl;
+
+    // for(int i = 0; i < g.size(); i++){
+    //     for(int j = 0; j < g[0].size(); j++){
+    //         cout << g[i][j] << " ";
+    //     }
+
+    //     cout << endl;
+    // }
+
+    // display(graph);
+    // cout << is_cyclic(graph) << endl;
+
+
+    // vector<int> astro1 = {1,6,3,2,9,10,0};
+    // vector<int> astro2 = {2,9,8,5,5,3,11};
+    // cout << astronaut(astro1, astro2, 12) << endl;
+
+    // vve g (5);
+    // add_edge(g, 0, 1, 0);
+    // add_edge(g, 0, 3, 0);
+    // add_edge(g, 2, 1, 0);
+    // add_edge(g, 2, 4, 0);
+    // add_edge(g, 3, 4, 0);
+
+    // display(g);
+
+    // vve g (6);
+    // add_edge(g, 0, 1, 0);
+    // add_edge(g, 0, 3, 0);
+    // add_edge(g, 2, 1, 0);
+    // add_edge(g, 2, 5, 0);
+    // add_edge(g, 2, 3, 0);
+    // add_edge(g, 4, 3, 0);
+    // add_edge(g, 4, 5, 0);
+
+    // cout << is_bipartite(graph) << endl;
+
+    // dijkstra(graph, 5);
+
+    // vve g1 = prim(graph);
+    vve g2 = kruskal(graph);
+
+    // display(g1);
+    // cout << endl;
+    // display(g2);
+    // cout << g.size() << endl;
+
+    // vector<bool> visited (25, false);
+    // vector<int> psf;
+
+    // psf.push_back(6);
+    // knights_tour(5, 1, 1, visited, psf);
+
+    // cout << count1 << endl;
+
+    // vve fwg (4);
+    // fwg[0].push_back(Edge (100,2));
+    // fwg[0].push_back(Edge (2,4));
+    // fwg[0].push_back(Edge (3,7));
+    // fwg[1].push_back(Edge (3,5));
+    // fwg[2].push_back(Edge (3,1));
+    // fwg[1].push_back(Edge (2,1));
+    // floyd_warshal(fwg);
+    // bellman_ford(fwg, 2);
+
+    // vve g (7);
+    // g[0].push_back(Edge (1, 10));
+    // g[0].push_back(Edge (4, 10));
+    // g[1].push_back(Edge (2, 10));
+    // g[2].push_back(Edge (3, 10));
+    // g[5].push_back(Edge (3, 10));
+    // g[6].push_back(Edge (5, 10));
+    // g[6].push_back(Edge (4, 10));
+
+    // topo_master(g);
+}
